@@ -119,4 +119,16 @@
     --sidebar-border: oklch(0.592 0.249 0.584);
     --sidebar-ring: oklch(0.718 0.202 349.761);
   }
+
+  ::selection {
+    background-color: oklch(0.459 0.187 3.815);
+    color: oklch(0.971 0.014 343.198);
+  }
+
+  .dark ::selection {
+    background-color: oklch(0.459 0.187 3.815);
+    color: oklch(0.971 0.014 343.198);
+  }
+
 }
+
