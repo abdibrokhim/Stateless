@@ -1,115 +1,67 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AnimatedBackground } from "@/components/motion-primitives/animated-background";
-import { toast } from "sonner";
+import { useWritingSession } from "@/hooks/useWritingSession";
+import { TimerClock } from "@/components/TimerClock";
+import { TextEffect } from "@/components/motion-primitives/text-effect";
+import { SlidingNumber } from '@/components/motion-primitives/sliding-number';
+import { Slider } from "@/components/ui/slider";
 
-const DEFAULT_TIMEOUT = 7; // 7 seconds timeout
-const MIN_SESSION_TIME = 5; // 5 minutes
-const MAX_SESSION_TIME = 180; // 180 minutes
+export function Playground() {
+  const {
+    text,
+    isActive,
+    sessionTime,
+    timeRemaining,
+    timeoutSeconds,
+    showSettings,
+    lastKeystroke,
+    setSessionTime,
+    setTimeoutSeconds,
+    setShowSettings,
+    formatTime,
+    progressPercentage,
+    startSession,
+    endSession,
+    handleTextChange,
+    MIN_SESSION_TIME,
+    MAX_SESSION_TIME,
+  } = useWritingSession();
 
-export function Writing() {
-  const [text, setText] = useState("");
-  const [isActive, setIsActive] = useState(false);
-  const [sessionTime, setSessionTime] = useState(15); // Default 15 minutes
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [lastKeystroke, setLastKeystroke] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [timeoutSeconds, setTimeoutSeconds] = useState(DEFAULT_TIMEOUT);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isNearTimeout, setIsNearTimeout] = useState(false);
 
-  // Check for timeout
+  // Handle checking for approaching timeout
   useEffect(() => {
     if (!isActive) return;
 
-    const checkTimeout = () => {
+    const checkNearTimeout = () => {
+      if (!lastKeystroke) return;
       const now = Date.now();
       const elapsed = (now - lastKeystroke) / 1000;
-
-      if (lastKeystroke && elapsed > timeoutSeconds) {
-        // Text deleted due to inactivity
-        setText("");
-        toast.error(`You stopped typing for ${timeoutSeconds} seconds. Your text has been deleted.`);
-      }
+      setIsNearTimeout(elapsed > (timeoutSeconds * 0.5));
     };
 
-    const interval = setInterval(checkTimeout, 1000);
+    const interval = setInterval(checkNearTimeout, 500);
     return () => clearInterval(interval);
   }, [isActive, lastKeystroke, timeoutSeconds]);
 
-  // Session timer
-  useEffect(() => {
-    if (!isActive) return;
-
-    setTimeRemaining(sessionTime * 60);
-
-    sessionTimerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // End session
-          endSession(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (sessionTimerRef.current) {
-        clearInterval(sessionTimerRef.current);
-      }
-    };
-  }, [isActive, sessionTime]);
-
-  const startSession = () => {
-    setIsActive(true);
-    setLastKeystroke(Date.now());
-    setText("");
+  // Handle start session with textarea focus
+  const handleStartSession = () => {
+    startSession();
     // Focus the textarea
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
       }
     }, 100);
-    toast.success(`Session started! Keep typing or lose your work after ${timeoutSeconds} seconds of inactivity.`);
   };
-
-  const endSession = (completed = false) => {
-    setIsActive(false);
-    if (sessionTimerRef.current) {
-      clearInterval(sessionTimerRef.current);
-    }
-    
-    if (completed) {
-      toast.success("Congratulations! You completed your writing session.");
-    } else {
-      toast.info("Session ended. Your text has been preserved.");
-    }
-  };
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-    setLastKeystroke(Date.now());
-  };
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const progressPercentage = isActive 
-    ? ((sessionTime * 60 - timeRemaining) / (sessionTime * 60)) * 100 
-    : 0;
 
   return (
     <div className="space-y-6">
@@ -119,9 +71,14 @@ export function Writing() {
             <div>
               <CardTitle className="text-2xl text-primary">Writing Session</CardTitle>
               <CardDescription>
-                {isActive 
-                  ? `Time remaining: ${formatTime(timeRemaining)}` 
-                  : `Session length: ${sessionTime} minutes`}
+                {isActive ? (
+                  <div className="flex items-center gap-2">
+                    <span>Time remaining:</span>
+                    <TimerClock seconds={timeRemaining} />
+                  </div>
+                ) : (
+                  `Session length: ${sessionTime} minutes`
+                )}
               </CardDescription>
             </div>
             
@@ -141,8 +98,11 @@ export function Writing() {
                 
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Session Length: {sessionTime} minutes
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      Session Length: 
+                      <div className="inline-flex items-center gap-1 font-mono">
+                        <SlidingNumber value={sessionTime} /> minutes
+                      </div>
                     </label>
                     <Slider 
                       min={MIN_SESSION_TIME} 
@@ -155,8 +115,11 @@ export function Writing() {
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Timeout: {timeoutSeconds} seconds
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      Timeout: 
+                      <div className="inline-flex items-center gap-1 font-mono">
+                        <SlidingNumber value={timeoutSeconds} /> seconds
+                      </div>
                     </label>
                     <Slider 
                       min={3} 
@@ -205,7 +168,7 @@ export function Writing() {
                 enableHover={true}
               >
                 <Button 
-                  onClick={startSession} 
+                  onClick={handleStartSession} 
                   size="lg" 
                   className="bg-pink-500 hover:bg-pink-600"
                   data-id="start"
@@ -232,7 +195,13 @@ export function Writing() {
       
       {isActive && (
         <div className="text-sm text-center text-muted-foreground">
-          <p>Keep typing! {timeoutSeconds} seconds of inactivity will delete all your text.</p>
+          {isNearTimeout ? (
+            <TextEffect per="char" preset="fade">
+              Warning! You're about to lose your text. Keep typing!
+            </TextEffect>
+          ) : (
+            <p>Keep typing! {timeoutSeconds} seconds of inactivity will delete all your text.</p>
+          )}
         </div>
       )}
     </div>
