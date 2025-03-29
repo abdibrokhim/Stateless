@@ -4,7 +4,6 @@ import { useRef, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { AnimatedBackground } from "@/components/motion-primitives/animated-background";
@@ -14,9 +13,10 @@ import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { SlidingNumber } from '@/components/motion-primitives/sliding-number';
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { TextareaWithFadeExit, TextareaWithFadeExitRef } from "./TextareaWithFadeExit";
+// import { TextareaWithFadeExit, TextareaWithFadeExitRef } from "./TextareaWithFadeExit";
 import { Settings, Copy, Clock, AlarmClock, BarChart2, Edit3 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { Textarea } from "./ui/textarea";
 
 export function Playground() {
   const {
@@ -40,7 +40,7 @@ export function Playground() {
     MAX_SESSION_TIME,
   } = useWritingSession({ disableAutoClear: true });
 
-  const textareaRef = useRef<TextareaWithFadeExitRef>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isNearTimeout, setIsNearTimeout] = useState(false);
   const [shouldFadeOut, setShouldFadeOut] = useState(false);
   const [charCount, setCharCount] = useState(0);
@@ -127,65 +127,6 @@ export function Playground() {
       .catch(() => toast.error("Failed to copy text"));
   };
 
-  // Settings content shared between dialog and drawer
-  const SettingsContent = () => (
-    <>
-      <div className="space-y-6 py-6">
-        <div className="space-y-2">
-          <label className="text-sm font-medium flex items-center justify-between text-pink-800">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>Session Length</span>
-            </div>
-            <div className="inline-flex items-center gap-1 font-mono text-pink-900">
-              <SlidingNumber value={sessionTime} /> minutes
-            </div>
-          </label>
-          <Slider 
-            min={MIN_SESSION_TIME} 
-            max={MAX_SESSION_TIME} 
-            step={5}
-            value={[sessionTime]} 
-            onValueChange={(value) => setSessionTime(value[0])}
-            className="bg-pink-200"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium flex items-center justify-between text-pink-800">
-            <div className="flex items-center gap-2">
-              <AlarmClock className="h-4 w-4" />
-              <span>Inactivity Timeout</span>
-            </div>
-            <div className="inline-flex items-center gap-1 font-mono text-pink-900">
-              <SlidingNumber value={timeoutSeconds} /> seconds
-            </div>
-          </label>
-          <Slider 
-            min={3} 
-            max={15} 
-            step={1}
-            value={[timeoutSeconds]} 
-            onValueChange={(value) => setTimeoutSeconds(value[0])}
-            className="bg-pink-200"
-          />
-          <p className="text-xs text-pink-600 mt-1">
-            Your text will be deleted if you stop typing for this long.
-          </p>
-        </div>
-      </div>
-      
-      <div className="mt-4">
-        <Button 
-          onClick={() => setShowSettings(false)} 
-          className="w-full bg-pink-600 hover:bg-pink-700 text-white"
-        >
-          Save Settings
-        </Button>
-      </div>
-    </>
-  );
-
   return (
     <div className="min-h-[calc(100vh-6rem)] flex flex-col">
       {/* Header with controls */}
@@ -226,13 +167,17 @@ export function Playground() {
                 <span>{charCount} chars</span>
               </div>
               <div className="flex items-center gap-1">
+                <Edit3 className="h-4 w-4" />
                 <span>{wordCount} words</span>
               </div>
             </div>
           )}
-          
+
           {isMobile ? (
-            <Drawer open={showSettings} onOpenChange={setShowSettings}>
+            <Drawer 
+              open={showSettings} 
+              onOpenChange={setShowSettings}
+            >
               <DrawerTrigger asChild>
                 <Button 
                   variant="ghost" 
@@ -390,42 +335,20 @@ export function Playground() {
       <div className="flex-1 flex flex-col">
         {isActive ? (
           <div className="flex-1 flex flex-col">
-            <Progress value={progressPercentage} className="h-1 mb-2 bg-pink-100" 
-              indicatorClassName="bg-pink-600" />
-            
-            <Card className="flex-1 flex flex-col border-pink-200 bg-white shadow-sm">
-              <div className="flex-1 p-2 md:p-4">
-                <TextareaWithFadeExit
+            <Progress value={progressPercentage} 
+              className="h-1 mb-2 max-w-4xl mx-auto bg-pink-100" 
+              indicatorClassName="bg-pink-600" 
+            />
+            <Card className="flex-1 flex flex-col border-pink-200 bg-white shadow-sm overflow-hidden">
+              <div className="flex-1 flex relative">
+                <Textarea
                   ref={textareaRef}
                   placeholder="Start typing... if you stop for more than 7 seconds, everything will be deleted!"
                   value={text}
                   onChange={handleTextInputChange}
-                  className="min-h-[calc(100%-2rem)] w-full resize-none focus-visible:ring-pink-400 text-pink-950"
+                  className="absolute inset-0 w-full h-full resize-none border-0 focus-visible:ring-0 focus-visible:border-0 focus:outline-none text-pink-950 p-4 rounded-none shadow-none outline-none overflow-y-auto"
                   disabled={!isActive}
-                  shouldFadeOut={shouldFadeOut}
-                  onAnimationComplete={handleAnimationComplete}
                 />
-              </div>
-
-              <div className="flex items-center justify-between p-2 bg-pink-50 border-t border-pink-100 text-xs text-pink-700">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    <BarChart2 className="h-4 w-4" />
-                    <span>{charCount} characters</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Edit3 className="h-4 w-4" />
-                    <span>{wordCount} words</span>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={() => endSession()} 
-                  variant="outline" 
-                  className="h-8 border-pink-200 hover:bg-pink-100 text-pink-700 hover:text-pink-900"
-                >
-                  End Session
-                </Button>
               </div>
             </Card>
           </div>
@@ -454,14 +377,6 @@ export function Playground() {
           </div>
         )}
       </div>
-      
-      {isActive && isNearTimeout && (
-        <div className="mt-2 text-center text-pink-700 bg-pink-50 p-2 rounded-lg">
-          <TextEffect per="char" preset="fade" className="text-pink-700">
-            Warning! You're about to lose your text. Keep typing!
-          </TextEffect>
-        </div>
-      )}
     </div>
   );
 }
