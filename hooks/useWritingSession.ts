@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
-const DEFAULT_TIMEOUT = 7; // 7 seconds timeout
+const DEFAULT_TIMEOUT = 5; // 5 seconds timeout
 const MIN_SESSION_TIME = 5; // 5 minutes
 const MAX_SESSION_TIME = 180; // 180 minutes
 
