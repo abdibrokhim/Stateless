@@ -130,5 +130,17 @@
     color: oklch(0.971 0.014 343.198);
   }
 
+  @keyframes blink {
+    from, to {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .animate-blink {
+    animation: blink 1s step-end infinite;
+  }
 }
 
