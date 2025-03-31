@@ -14,9 +14,10 @@ import { SlidingNumber } from '@/components/motion-primitives/sliding-number';
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 // import { TextareaWithFadeExit, TextareaWithFadeExitRef } from "./TextareaWithFadeExit";
-import { Settings, Copy, Clock, AlarmClock, BarChart2, Edit3, Badge, StopCircle, ArrowRight } from "lucide-react";
+import { Settings, Copy, Clock, AlarmClock, BarChart2, Edit3, Badge, StopCircle, ArrowRight, Download } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Textarea } from "./ui/textarea";
+import ReactCanvasConfetti from "react-canvas-confetti";
 // import Image from "next/image";
 // import Link from "next/link";
 // import { MyTooltip } from "./ui/MyTooltip";
@@ -49,6 +50,10 @@ export function Playground() {
   const [charCount, setCharCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+  
+  // Confetti reference and state
+  const confettiRef = useRef<any>(null);
   
   // Calculate character and word count
   useEffect(() => {
@@ -130,8 +135,91 @@ export function Playground() {
       .catch(() => toast.error("Failed to copy text"));
   };
 
+  // Handle fire confetti
+  const fireConfetti = () => {
+    if (!confettiRef.current) return;
+    
+    const duration = 5000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+    
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+      
+      const particleCount = 50 * (timeLeft / duration);
+      
+      // launch confetti from the sides
+      confettiRef.current({
+        ...defaults,
+        particleCount,
+        origin: { x: Math.random(), y: Math.random() * 0.5 }
+      });
+      
+      confettiRef.current({
+        ...defaults,
+        particleCount,
+        origin: { x: Math.random(), y: Math.random() * 0.5 }
+      });
+    }, 250);
+  };
+  
+  // Get confetti instance on init
+  const handleConfettiInit = ({ confetti }: { confetti: any }) => {
+    confettiRef.current = confetti;
+  };
+  
+  // Check if session completed successfully when time runs out
+  useEffect(() => {
+    if (isActive && timeRemaining <= 0 && text.length > 0) {
+      // Session completed successfully
+      setSessionCompleted(true);
+      fireConfetti();
+    }
+  }, [isActive, timeRemaining, text]);
+
+  // Handle manual end session
+  const handleEndSession = () => {
+    endSession();
+    setSessionCompleted(false);
+  };
+
+  // Handle download text as file
+  const handleDownloadText = () => {
+    if (!text) return;
+    
+    const element = document.createElement("a");
+    const file = new Blob([text], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `stateless-writing-${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    
+    toast.success("Text file downloaded");
+  };
+
+  const confettiStyle = {
+    position: "fixed",
+    pointerEvents: "none",
+    width: "100%",
+    height: "100%",
+    top: 0,
+    left: 0,
+    zIndex: 999
+  };
+
   return (
     <div className="min-h-[calc(100vh-6rem)] flex flex-col">
+      {/* Confetti canvas */}
+      <ReactCanvasConfetti
+        onInit={handleConfettiInit}
+        style={confettiStyle as React.CSSProperties}
+      />
+      
       {/* Header with controls */}
       <div className="flex justify-between items-center mb-4 py-2 px-2 bg-pink-50 rounded-lg">
         <div className="flex items-center gap-2 text-pink-900">
@@ -160,6 +248,18 @@ export function Playground() {
               title="Copy text"
             >
               <Copy className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {sessionCompleted && text && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900"
+              onClick={handleDownloadText}
+              title="Download as text file"
+            >
+              <Download className="h-4 w-4" />
             </Button>
           )}
           
