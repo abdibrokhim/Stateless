@@ -99,6 +99,8 @@ export function Playground() {
   const handleDeletionComplete = () => {
     setText("");
     setIsDeleting(false);
+    setSessionCompleted(true);
+    endSession();
   };
 
   // Handle start session with textarea focus
@@ -296,10 +298,11 @@ export function Playground() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900 cursor-pointer"
+                  className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900 cursor-pointer relative"
                   disabled={isActive}
                 >
                   <Settings className="h-4 w-4" />
+                  <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">NEW</span>
                 </Button>
               </DrawerTrigger>
               <DrawerContent className="bg-pink-50 border-pink-200">
@@ -349,9 +352,32 @@ export function Playground() {
                             onValueChange={(value) => setTimeoutSeconds(value[0])}
                             className="bg-pink-200"
                         />
-                        <p className="text-xs text-pink-600 mt-1">
+                        <p className="text-[10px] text-pink-600 mt-1">
                             Your text will be deleted if you stop typing for this long.
                         </p>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-pink-100">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium flex items-center gap-2 text-pink-800">
+                              <Badge className="h-4 w-4" />
+                              <span>Pacman Mode</span>
+                              <span className="bg-pink-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">NEW</span>
+                            </label>
+                            <Button
+                              onClick={() => setIsPacmanEnabled(!isPacmanEnabled)}
+                              variant="outline"
+                              size="sm"
+                              className={`${
+                                isPacmanEnabled ? 'bg-pink-100 text-pink-900' : 'bg-transparent'
+                              } border-pink-200 hover:bg-pink-100`}
+                            >
+                              {isPacmanEnabled ? '🔴 On' : '⚪ Off'}
+                            </Button>
+                          </div>
+                          <p className="text-[10px] text-pink-600 mt-1">
+                            When enabled, text will be deleted character by character (like Pacman eating) instead of instantly disappearing when you stop typing.
+                          </p>
                         </div>
                     </div>
                     
@@ -374,10 +400,11 @@ export function Playground() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900 cursor-pointer"
+                  className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900 cursor-pointer relative"
                   disabled={isActive}
                 >
                   <Settings className="h-4 w-4" />
+                  <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">NEW</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-pink-50 border-pink-200">
@@ -426,8 +453,37 @@ export function Playground() {
                       onValueChange={(value) => setTimeoutSeconds(value[0])}
                       className="bg-pink-200"
                     />
-                    <p className="text-xs text-pink-600 mt-1">
+                    <p className="text-[10px] text-pink-600 mt-1">
                       Your text will be deleted if you stop typing for this long.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-pink-100">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium flex items-center gap-2 text-pink-800">
+                        <img 
+                          src="/pacman.gif" 
+                          alt="Pacman" 
+                          width={16} 
+                          height={16} 
+                          className="rounded-full"
+                        />
+                        <span>Pacman Mode</span>
+                        <span className="bg-pink-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full">NEW</span>
+                      </label>
+                      <Button
+                        onClick={() => setIsPacmanEnabled(!isPacmanEnabled)}
+                        variant="outline"
+                        size="sm"
+                        className={`${
+                          isPacmanEnabled ? 'bg-pink-100 text-pink-900' : 'bg-transparent'
+                        } border-pink-200 hover:bg-pink-100`}
+                      >
+                        {isPacmanEnabled ? '🔴 On' : '⚪ Off'}
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-pink-600 mt-1">
+                      When enabled, text will be deleted character by character (like Pacman eating) instead of instantly disappearing when you stop typing.
                     </p>
                   </div>
                 </div>
@@ -454,17 +510,6 @@ export function Playground() {
               <StopCircle className="h-4 w-4" />
             </Button>
           )}
-
-          <Button
-            onClick={() => setIsPacmanEnabled(!isPacmanEnabled)}
-            variant="outline"
-            size="sm"
-            className={`${
-              isPacmanEnabled ? 'bg-pink-100 text-pink-900' : 'bg-transparent'
-            } border-pink-200 hover:bg-pink-100`}
-          >
-            {isPacmanEnabled ? '🟡 Pacman Mode' : '⚪ Normal Mode'}
-          </Button>
         </div>
       </div>
 
