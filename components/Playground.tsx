@@ -16,8 +16,11 @@ import { toast } from "sonner";
 // import { TextareaWithFadeExit, TextareaWithFadeExitRef } from "./TextareaWithFadeExit";
 import { Settings, Copy, Clock, AlarmClock, BarChart2, Edit3, Badge, StopCircle, ArrowRight, Download } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 import ReactCanvasConfetti from "react-canvas-confetti";
+import { BackspaceTextEffect } from "@/components/backspace-text-effect";
+// import { Label } from "@/components/ui/label";
+// import { Switch } from "@/components/ui/switch";
 // import Image from "next/image";
 // import Link from "next/link";
 // import { MyTooltip } from "./ui/MyTooltip";
@@ -54,6 +57,8 @@ export function Playground() {
   
   // Confetti reference and state
   const confettiRef = useRef<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPacmanEnabled, setIsPacmanEnabled] = useState(false);
   
   // Calculate character and word count
   useEffect(() => {
@@ -61,12 +66,10 @@ export function Playground() {
     setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
   }, [text]);
   
-  // Handle checking for approaching timeout and setting fade effect
+  // Handle checking for approaching timeout
   useEffect(() => {
-    if (!isActive || !text) return;
+    if (!isActive || !text || isDeleting) return;
 
-    const startFadeThreshold = timeoutSeconds * 0.5; // Start fadeout at 50% of timeout
-    
     const checkActivity = () => {
       if (!lastKeystroke) return;
       
@@ -76,43 +79,26 @@ export function Playground() {
       // Set warning state when approaching timeout
       setIsNearTimeout(elapsed > (timeoutSeconds * 0.6));
       
-      // Start fadeout when passing the threshold
-      if (elapsed > startFadeThreshold && !shouldFadeOut && text.length > 0) {
-        setShouldFadeOut(true);
-      } else if (elapsed <= startFadeThreshold && shouldFadeOut) {
-        // User resumed typing before timeout
-        setShouldFadeOut(false);
-      }
-      
-      // Complete deletion after timeout
+      // Start deletion animation after timeout
       if (elapsed > timeoutSeconds && text.length > 0) {
-        setText("");
-        setShouldFadeOut(false);
-        toast.error(`You stopped typing for ${timeoutSeconds} seconds. Your text has been deleted.`);
+        if (isPacmanEnabled) {
+          setIsDeleting(true);
+          toast.error(`You stopped typing for ${timeoutSeconds} seconds. Your text has been deleted.`);
+        } else {
+          setText("");  // Instantly clear text in normal mode
+          toast.error(`You stopped typing for ${timeoutSeconds} seconds. Your text has been deleted.`);
+        }
       }
     };
 
     const interval = setInterval(checkActivity, 300);
     return () => clearInterval(interval);
-  }, [isActive, lastKeystroke, timeoutSeconds, text, shouldFadeOut, setText]);
+  }, [isActive, lastKeystroke, timeoutSeconds, text, isDeleting, isPacmanEnabled, setText]);
 
-  // Custom text change handler to manage the fade state
-  const handleTextInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    // Stop fadeout if user starts typing
-    if (shouldFadeOut) {
-      setShouldFadeOut(false);
-    }
-    
-    // Call the original handler from useWritingSession
-    handleTextChange(e);
-  };
-
-  // Handle animation complete (all text has faded)
-  const handleAnimationComplete = () => {
-    if (shouldFadeOut) {
-      setText("");
-      setShouldFadeOut(false);
-    }
+  // Handle animation complete
+  const handleDeletionComplete = () => {
+    setText("");
+    setIsDeleting(false);
   };
 
   // Handle start session with textarea focus
@@ -210,6 +196,31 @@ export function Playground() {
     top: 0,
     left: 0,
     zIndex: 999
+  };
+
+  // Define the handleTextInputChange function
+  const handleTextInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Prevent text changes during deletion animation
+    if (isDeleting) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Reset deletion state if user starts typing
+    setIsDeleting(false);
+    
+    // Call the original handler from useWritingSession
+    handleTextChange(e);
+  };
+
+  // Modify the session end handling
+  const handleSessionEnd = () => {
+    if (isPacmanEnabled) {
+      setIsDeleting(true);  // This will trigger the BackspaceTextEffect
+    } else {
+      endSession();  // Just end the session normally
+      setText("");  // Clear the text instantly
+    }
   };
 
   return (
@@ -438,11 +449,22 @@ export function Playground() {
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900 cursor-pointer"
-              onClick={() => endSession()}
+              onClick={handleSessionEnd}
             >
               <StopCircle className="h-4 w-4" />
             </Button>
           )}
+
+          <Button
+            onClick={() => setIsPacmanEnabled(!isPacmanEnabled)}
+            variant="outline"
+            size="sm"
+            className={`${
+              isPacmanEnabled ? 'bg-pink-100 text-pink-900' : 'bg-transparent'
+            } border-pink-200 hover:bg-pink-100`}
+          >
+            {isPacmanEnabled ? '🟡 Pacman Mode' : '⚪ Normal Mode'}
+          </Button>
         </div>
       </div>
 
@@ -456,14 +478,24 @@ export function Playground() {
             />
             <Card className="flex-1 flex flex-col border-pink-200 bg-white shadow-none overflow-hidden">
               <div className="flex-1 flex relative">
-                <Textarea
-                  ref={textareaRef}
-                  placeholder="Start typing... if you stop for more than 7 seconds, everything will be deleted!"
-                  value={text}
-                  onChange={handleTextInputChange}
-                  className="absolute inset-0 w-full h-full resize-none border-0 focus-visible:ring-0 focus-visible:border-0 focus:outline-none text-pink-950 p-4 rounded-none shadow-none outline-none overflow-y-auto placeholder:text-sm"
-                  disabled={!isActive}
-                />
+                {isDeleting ? (
+                  <div className="absolute inset-0 w-full h-full p-4 pointer-events-none">
+                    <BackspaceTextEffect
+                      text={text}
+                      isActive={isDeleting}
+                      onComplete={handleDeletionComplete}
+                    />
+                  </div>
+                ) : (
+                  <Textarea
+                    ref={textareaRef}
+                    placeholder="Start typing... if you stop for more than 7 seconds, everything will be deleted!"
+                    value={text}
+                    onChange={handleTextInputChange}
+                    className="absolute inset-0 w-full h-full resize-none border-0 focus-visible:ring-0 focus-visible:border-0 focus:outline-none text-pink-950 p-4 rounded-none shadow-none outline-none overflow-y-auto placeholder:text-sm"
+                    disabled={!isActive || isDeleting}
+                  />
+                )}
               </div>
             </Card>
           </div>
