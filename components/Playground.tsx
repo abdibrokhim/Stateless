@@ -100,7 +100,7 @@ export function Playground() {
     setText("");
     setIsDeleting(false);
     setSessionCompleted(true);
-    endSession();
+    // endSession();
   };
 
   // Handle start session with textarea focus
@@ -138,7 +138,7 @@ export function Playground() {
         return clearInterval(interval);
       }
       
-      const particleCount = 50 * (timeLeft / duration);
+      const particleCount = 100 * (timeLeft / duration);
       
       // launch confetti from the sides
       confettiRef.current({
@@ -168,6 +168,12 @@ export function Playground() {
       fireConfetti();
     }
   }, [isActive, timeRemaining, text]);
+
+  // testing cofetti
+  useEffect(() => {
+    fireConfetti();
+    toast.success("Welcome!!");
+  }, []);
 
   // Handle manual end session
   const handleEndSession = () => {
@@ -250,6 +256,17 @@ export function Playground() {
             </div>
           )}
         </div>
+
+        {sessionCompleted && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-full text-pink-700 hover:bg-pink-100 hover:text-pink-900"
+            onClick={handleDownloadText}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        )}
         
         <div className="flex items-center gap-2">
           {isActive && text && (
